@@ -1,5 +1,6 @@
 import { App, applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getMessaging, Messaging } from 'firebase-admin/messaging';
+import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
 import { env, hasFirebaseAdmin } from './env';
 
@@ -44,4 +45,20 @@ export const firebaseMessaging = (): Messaging | null => {
   const app = getApp();
   if (!app) return null;
   return getMessaging(app);
+};
+
+interface FirebaseAdminBundle {
+  firestore: () => Firestore;
+  messaging: () => Messaging;
+}
+
+export const firebaseAdmin = (): FirebaseAdminBundle => {
+  const app = getApp();
+  if (!app) {
+    throw new Error('firebase_admin_not_configured');
+  }
+  return {
+    firestore: () => getFirestore(app),
+    messaging: () => getMessaging(app),
+  };
 };

@@ -8,18 +8,36 @@ import { initI18n } from '@/i18n';
 import { RootNavigator } from '@/navigation/RootNavigator';
 import { useAuthStore } from '@/stores/auth';
 import { colors } from '@/theme';
+import {
+  registerParentDevice,
+  ensureNotificationChannel,
+} from '@/services/notifications';
+import { startBackgroundTracking } from '@/services/location';
 
 export default function App(): React.ReactElement {
   const [ready, setReady] = useState(false);
   const bootstrap = useAuthStore((s) => s.bootstrap);
+  const session = useAuthStore((s) => s.session);
 
   useEffect(() => {
     (async () => {
       await initI18n();
       await bootstrap();
+      await ensureNotificationChannel();
       setReady(true);
     })();
   }, [bootstrap]);
+
+  // Side-effect: when a parent logs in, register their FCM token.
+  // When a child logs in, start background location tracking.
+  useEffect(() => {
+    if (!session) return;
+    if (session.kind === 'parent') {
+      void registerParentDevice(session.uid);
+    } else if (session.kind === 'child') {
+      void startBackgroundTracking(session.childId);
+    }
+  }, [session]);
 
   if (!ready) {
     return (

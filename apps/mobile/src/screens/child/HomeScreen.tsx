@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
@@ -11,9 +11,14 @@ import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { useAuthStore } from '@/stores/auth';
 import { subscribeChildRules } from '@/services/rules';
+import { computeScheduleStatus, formatRemaining } from '@/services/scheduling';
+import { Native } from '@/services/native';
 import type { Rule } from '@/types';
 
 type Nav = NativeStackNavigationProp<ChildStackParamList, 'Home'>;
+
+// Module-scope set so that re-mounts don't replay locks.
+const firedLocks = new Set<string>();
 
 export const ChildHomeScreen: React.FC = () => {
   const { t } = useTranslation();
@@ -21,11 +26,51 @@ export const ChildHomeScreen: React.FC = () => {
   const session = useAuthStore((s) => s.session);
   const signOut = useAuthStore((s) => s.signOut);
   const [rules, setRules] = useState<Rule[]>([]);
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     if (session?.kind !== 'child') return;
     return subscribeChildRules(session.childId, setRules);
   }, [session]);
+
+  // Re-compute status every minute so the bedtime banner appears on schedule.
+  useEffect(() => {
+    const id = setInterval(() => setTick((x) => x + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Sync the active blocklist to the native AccessibilityService whenever the
+  // rule set changes. The service uses this to redirect the user back to the
+  // launcher when they open a blocked app. Also trigger a Device-Admin lock
+  // immediately when a `remote_lock` rule becomes active.
+  useEffect(() => {
+    const blockedPkgs: string[] = [];
+    let lockNow = false;
+    for (const r of rules) {
+      if (!r.active) continue;
+      if (r.kind === 'block_app') {
+        const p = (r.payload as { packageName?: string }).packageName;
+        if (p) blockedPkgs.push(p);
+      } else if (r.kind === 'remote_lock') {
+        // Only lock once per remote-lock rule activation: we treat ruleId as
+        // the dedup key by stuffing it into a one-shot ref outside React's
+        // state machine.
+        if (!firedLocks.has(r.id)) {
+          firedLocks.add(r.id);
+          lockNow = true;
+        }
+      }
+    }
+    void Native.setBlockedPackages(blockedPkgs);
+    if (lockNow) void Native.lockNow();
+  }, [rules]);
+
+  const status = useMemo(
+    () => computeScheduleStatus(rules, new Date()),
+    // tick triggers re-evaluation, even though it isn't directly used inside
+    // the function — we just want a fresh `new Date()`.
+    [rules, tick],
+  );
 
   if (session?.kind !== 'child') return <Screen />;
 
@@ -36,6 +81,9 @@ export const ChildHomeScreen: React.FC = () => {
   const recitationRule = rules.find(
     (r) => r.kind === 'require_recitation' && r.active,
   );
+  const remoteLock = rules.find((r) => r.kind === 'remote_lock' && r.active);
+
+  const remaining = formatRemaining(0, status.dailyLimitMin, status.bonusMinutes);
 
   return (
     <Screen scroll>
@@ -50,9 +98,44 @@ export const ChildHomeScreen: React.FC = () => {
         </Pressable>
       </View>
 
+      {remoteLock ? (
+        <Card style={{ borderColor: colors.danger, backgroundColor: colors.dangerSoft }}>
+          <Text style={{ fontSize: 32 }}>🔒</Text>
+          <Text style={[typography.h3, { color: colors.danger }]}>
+            {t('child.remoteLockTitle')}
+          </Text>
+          <Text style={typography.small}>{t('child.remoteLockBody')}</Text>
+        </Card>
+      ) : null}
+
+      {status.bedtimeActive ? (
+        <Card style={{ borderColor: colors.warning, backgroundColor: colors.warningSoft }}>
+          <Text style={{ fontSize: 28 }}>🌙</Text>
+          <Text style={[typography.h3, { color: colors.warning }]}>
+            {t('child.bedtimeTitle')}
+          </Text>
+          <Text style={typography.small}>{t('child.bedtimeBody')}</Text>
+        </Card>
+      ) : null}
+
+      {status.homeworkActive ? (
+        <Card style={{ borderColor: colors.primary }}>
+          <Text style={{ fontSize: 28 }}>📚</Text>
+          <Text style={[typography.h3, { color: colors.primary }]}>
+            {t('child.homeworkTitle')}
+          </Text>
+          <Text style={typography.small}>{t('child.homeworkBody')}</Text>
+        </Card>
+      ) : null}
+
       <Card>
         <Text style={typography.small}>{t('child.timeRemaining')}</Text>
-        <Text style={typography.display}>—</Text>
+        <Text style={typography.display}>{remaining}</Text>
+        {status.bonusMinutes > 0 ? (
+          <Text style={[typography.tiny, { color: colors.success }]}>
+            +{status.bonusMinutes} min {t('child.rewardSuffix')} 🎁
+          </Text>
+        ) : null}
       </Card>
 
       <View style={{ height: spacing.md }} />
@@ -67,13 +150,49 @@ export const ChildHomeScreen: React.FC = () => {
           <Text style={{ fontSize: 32 }}>📖</Text>
           <View style={{ flex: 1 }}>
             <Text style={typography.h3}>{t('child.reciteToUnlock')}</Text>
-            <Text style={[typography.small, { color: colors.textMuted }]} numberOfLines={2}>
+            <Text
+              style={[typography.small, { color: colors.textMuted }]}
+              numberOfLines={2}
+            >
               {recitationRule.recitationText ?? '...'}
             </Text>
           </View>
           <Text style={{ fontSize: 22 }}>›</Text>
         </Pressable>
       ) : null}
+
+      <View style={{ height: spacing.md }} />
+
+      <View style={styles.tileRow}>
+        <Pressable
+          onPress={() => nav.navigate('SafeBrowser', {})}
+          style={({ pressed }) => [
+            styles.tile,
+            { backgroundColor: colors.primarySoft },
+            pressed && { opacity: 0.85 },
+          ]}
+        >
+          <Text style={{ fontSize: 32 }}>🌐</Text>
+          <Text style={typography.bodyStrong}>{t('child.browserTile')}</Text>
+          <Text style={[typography.tiny, { color: colors.textMuted }]}>
+            {t('child.browserTileDesc')}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => nav.navigate('SOS')}
+          style={({ pressed }) => [
+            styles.tile,
+            { backgroundColor: colors.dangerSoft },
+            pressed && { opacity: 0.85 },
+          ]}
+        >
+          <Text style={{ fontSize: 32 }}>🆘</Text>
+          <Text style={typography.bodyStrong}>{t('child.sos')}</Text>
+          <Text style={[typography.tiny, { color: colors.textMuted }]}>
+            {t('child.sosTileDesc')}
+          </Text>
+        </Pressable>
+      </View>
 
       <View style={{ height: spacing.md }} />
 
@@ -109,7 +228,12 @@ export const ChildHomeScreen: React.FC = () => {
       <View style={{ height: spacing.xl }} />
 
       <Card>
-        <Text style={[typography.tiny, { color: colors.textMuted, textAlign: 'center' }]}>
+        <Text
+          style={[
+            typography.tiny,
+            { color: colors.textMuted, textAlign: 'center' },
+          ]}
+        >
           {t('child.monitored')}
         </Text>
       </Card>
@@ -141,5 +265,17 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.xs,
+  },
+  tileRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  tile: {
+    flex: 1,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
 });

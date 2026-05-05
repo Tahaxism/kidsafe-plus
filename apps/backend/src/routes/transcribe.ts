@@ -3,6 +3,7 @@ import multer from 'multer';
 import * as fs from 'node:fs';
 
 import { openai, TRANSCRIBE_MODEL } from '../openai';
+import { hasNativeOpenAi } from '../env';
 
 const upload = multer({
   storage: multer.diskStorage({}),
@@ -17,6 +18,11 @@ router.post(
   async (req: Request, res: Response) => {
     if (!req.file) {
       return res.status(400).json({ error: 'no_audio' });
+    }
+    if (!hasNativeOpenAi()) {
+      // Best-effort: try anyway. Most aggregators 404 on /audio/transcriptions
+      // but a few support it. We don't preflight; we just call and let the
+      // upstream error bubble up — the mobile app already handles failures.
     }
     const language = (req.body.language as string | undefined) ?? undefined;
     try {

@@ -11,11 +11,14 @@ export const openai = (): OpenAI => {
     );
   }
   if (!_client) {
-    _client = new OpenAI({ apiKey: env.openaiKey });
+    _client = new OpenAI({
+      apiKey: env.openaiKey,
+      ...(env.openaiBaseUrl ? { baseURL: env.openaiBaseUrl } : {}),
+    });
   }
   return _client;
 };
 
-export const CHAT_MODEL = 'gpt-4o';
-export const SMALL_MODEL = 'gpt-4o-mini';
-export const TRANSCRIBE_MODEL = 'whisper-1';
+export const CHAT_MODEL = env.chatModel;
+export const SMALL_MODEL = env.smallModel;
+export const TRANSCRIBE_MODEL = env.transcribeModel;

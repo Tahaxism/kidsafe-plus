@@ -1,0 +1,7 @@
+{
+  "name": "kidsafe-native",
+  "version": "0.1.0",
+  "description": "Native Android modules for KidSafe+ (Accessibility, Device Admin, Usage Stats).",
+  "main": "src/index.ts",
+  "private": true
+}

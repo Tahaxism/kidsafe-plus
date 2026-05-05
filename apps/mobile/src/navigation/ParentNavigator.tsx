@@ -19,6 +19,7 @@ import { LocationScreen } from '@/screens/parent/LocationScreen';
 import { RecitationScreen } from '@/screens/parent/RecitationScreen';
 import { AddChildScreen } from '@/screens/parent/AddChildScreen';
 import { LanguageScreen } from '@/screens/parent/LanguageScreen';
+import { NativePermissionsScreen } from '@/screens/parent/NativePermissionsScreen';
 
 const Tab = createBottomTabNavigator<ParentTabParamList>();
 const Stack = createNativeStackNavigator<ParentStackParamList>();
@@ -109,5 +110,10 @@ export const ParentNavigator: React.FC = () => (
     <Stack.Screen name="Recitation" component={RecitationScreen} />
     <Stack.Screen name="AddChild" component={AddChildScreen} />
     <Stack.Screen name="Language" component={LanguageScreen} />
+    <Stack.Screen
+      name="NativePermissions"
+      component={NativePermissionsScreen}
+      options={{ title: 'Native permissions' }}
+    />
   </Stack.Navigator>
 );

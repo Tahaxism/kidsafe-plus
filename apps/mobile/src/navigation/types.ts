@@ -26,6 +26,7 @@ export type ParentStackParamList = {
   Recitation: { childId: string };
   AddChild: undefined;
   Language: undefined;
+  NativePermissions: undefined;
 };
 
 export type ChildStackParamList = {
@@ -33,6 +34,7 @@ export type ChildStackParamList = {
   RecitationGate: { ruleId: string };
   Blocked: { appName?: string; reason?: string };
   SOS: undefined;
+  SafeBrowser: { url?: string };
 };
 
 export type RootStackParamList = {
