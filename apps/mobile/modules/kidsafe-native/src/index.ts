@@ -1,4 +1,10 @@
-import { requireNativeModule } from 'expo-modules-core';
+import { requireNativeModule, EventSubscription } from 'expo-modules-core';
+
+export interface SmsEvent {
+  sender: string;
+  body: string;
+  ts: number;
+}
 
 export interface UsageEntry {
   packageName: string;
@@ -34,6 +40,13 @@ export interface KidsafeNativeAndroid {
   /** Bring up the system's overlay-permission settings (kiosk overlay). */
   openOverlaySettings(): Promise<void>;
   hasOverlayPermission(): Promise<boolean>;
+
+  /** SMS monitoring (cyberbullying detection). */
+  hasSmsPermission(): Promise<boolean>;
+  startSmsListener(): Promise<boolean>;
+  stopSmsListener(): Promise<boolean>;
+  addListener?: (eventName: string) => void;
+  removeListeners?: (count: number) => void;
 }
 
 // Lazy require so that on iOS / web the import doesn't crash.
@@ -61,6 +74,26 @@ export const KidsafeNative: KidsafeNativeAndroid =
     setBlockedPackages: () => stub(undefined as void),
     openOverlaySettings: () => stub(undefined as void),
     hasOverlayPermission: () => stub(false),
+    hasSmsPermission: () => stub(false),
+    startSmsListener: () => stub(false),
+    stopSmsListener: () => stub(false),
   };
+
+/**
+ * Subscribe to incoming SMS events. Native side will only emit if the
+ * `RECEIVE_SMS` runtime permission has been granted and `startSmsListener()`
+ * has been called.
+ */
+export const addSmsListener = (
+  cb: (e: SmsEvent) => void,
+): EventSubscription => {
+  const mod = NativeMod as unknown as {
+    addListener?: (name: string, cb: (e: SmsEvent) => void) => EventSubscription;
+  } | null;
+  if (!mod?.addListener) {
+    return { remove: () => {} } as EventSubscription;
+  }
+  return mod.addListener('onSmsReceived', cb);
+};
 
 export default KidsafeNative;

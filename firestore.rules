@@ -89,8 +89,11 @@ service cloud.firestore {
     match /usage/{id} {
       allow read: if isAuthed()
                   && ownsChild(resource.data.childId);
-      allow create, update: if isAuthed()
-                            && ownsChild(request.resource.data.childId);
+      allow create: if isAuthed()
+                    && ownsChild(request.resource.data.childId);
+      allow update: if isAuthed()
+                    && ownsChild(resource.data.childId)
+                    && request.resource.data.childId == resource.data.childId;
       allow delete: if false;
     }
   }

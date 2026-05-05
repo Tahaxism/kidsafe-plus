@@ -13,6 +13,7 @@ import { useAuthStore } from '@/stores/auth';
 import { subscribeChildRules } from '@/services/rules';
 import { computeScheduleStatus, formatRemaining } from '@/services/scheduling';
 import { Native } from '@/services/native';
+import { PrivacyNoticeModal } from './PrivacyNoticeModal';
 import type { Rule } from '@/types';
 
 type Nav = NativeStackNavigationProp<ChildStackParamList, 'Home'>;
@@ -112,6 +113,27 @@ export const ChildHomeScreen: React.FC = () => {
     }
   }, [usedMin, status.dailyLimitMin, status.bonusMinutes, limitFiredKey]);
 
+  // Auto-lock when bedtime / homework windows become active. Fires once per
+  // mode per day so the child can unlock and use whitelisted apps but the
+  // device locks the moment they enter the window.
+  useEffect(() => {
+    const day = new Date().toDateString();
+    if (status.bedtimeActive) {
+      const k = `bedtime:${day}`;
+      if (!firedLocks.has(k)) {
+        firedLocks.add(k);
+        void Native.lockNow();
+      }
+    }
+    if (status.homeworkActive) {
+      const k = `homework:${day}`;
+      if (!firedLocks.has(k)) {
+        firedLocks.add(k);
+        void Native.lockNow();
+      }
+    }
+  }, [status.bedtimeActive, status.homeworkActive]);
+
   if (session?.kind !== 'child') return <Screen />;
 
   const activeBlocks = rules.filter(
@@ -131,6 +153,7 @@ export const ChildHomeScreen: React.FC = () => {
 
   return (
     <Screen scroll>
+      <PrivacyNoticeModal childId={session.childId} />
       <View style={styles.header}>
         <Text style={typography.h1}>
           {t('child.helloChild', { name: session.name })}
