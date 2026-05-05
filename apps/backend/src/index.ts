@@ -37,6 +37,8 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 app.use('/ai', limiter);
+app.use('/report', limiter);
+app.use('/notifications', limiter);
 
 app.get('/health', (_req: Request, res: Response) => {
   res.json({

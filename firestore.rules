@@ -25,6 +25,11 @@ service cloud.firestore {
 
     match /parents/{parentUid} {
       allow read, write: if isParent(parentUid);
+
+      // FCM device tokens registered by the parent's mobile app.
+      match /devices/{deviceId} {
+        allow read, write: if isParent(parentUid);
+      }
     }
 
     match /children/{childId} {
@@ -66,6 +71,27 @@ service cloud.firestore {
       allow create: if isAuthed()
                     && ownsChild(request.resource.data.childId);
       allow update, delete: if false;
+    }
+
+    // Browser visit history captured by the child's in-app SafeBrowser screen.
+    // Currently the device writes directly with the parent's auth context;
+    // long-term this should be routed through the backend.
+    match /web_history/{id} {
+      allow read: if isAuthed()
+                  && ownsChild(resource.data.childId);
+      allow create: if isAuthed()
+                    && ownsChild(request.resource.data.childId);
+      allow update, delete: if false;
+    }
+
+    // Per-day usage stats reported by the child's device (from native
+    // UsageStatsManager). Written by the parent's auth context on the device.
+    match /usage/{id} {
+      allow read: if isAuthed()
+                  && ownsChild(resource.data.childId);
+      allow create, update: if isAuthed()
+                            && ownsChild(request.resource.data.childId);
+      allow delete: if false;
     }
   }
 }

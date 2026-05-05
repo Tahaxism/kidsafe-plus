@@ -107,8 +107,14 @@ export const transcribeOnDevice = (
   subscriptions.push(
     ExpoSpeechRecognitionModule.addListener('end', () => {
       // If end fires before result, fall back to whatever partial we have.
+      // Always settle the promise — never leave it hanging, otherwise the
+      // calling UI would be stuck in `recording` forever.
       cleanup();
-      if (lastText) resolveFn(lastText);
+      if (lastText) {
+        resolveFn(lastText);
+      } else {
+        rejectFn(new Error('no_speech_detected'));
+      }
     }),
   );
 

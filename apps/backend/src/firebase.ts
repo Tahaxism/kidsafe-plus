@@ -1,6 +1,7 @@
 import { App, applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getMessaging, Messaging } from 'firebase-admin/messaging';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
+import { getAuth, Auth } from 'firebase-admin/auth';
 
 import { env, hasFirebaseAdmin } from './env';
 
@@ -50,6 +51,7 @@ export const firebaseMessaging = (): Messaging | null => {
 interface FirebaseAdminBundle {
   firestore: () => Firestore;
   messaging: () => Messaging;
+  auth: () => Auth;
 }
 
 export const firebaseAdmin = (): FirebaseAdminBundle => {
@@ -60,5 +62,6 @@ export const firebaseAdmin = (): FirebaseAdminBundle => {
   return {
     firestore: () => getFirestore(app),
     messaging: () => getMessaging(app),
+    auth: () => getAuth(app),
   };
 };
