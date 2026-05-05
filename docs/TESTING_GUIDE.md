@@ -232,20 +232,92 @@ Try reading from the wrong account — the security rules in
 
 ---
 
-## 13. Known limitations (this milestone)
+## 13. Native enforcement (M2)
+
+Once the dev-client APK is installed, do this **once** on the **child device**:
+
+1. Sign in as parent (so the auth token is present), then open
+   **Réglages → Permissions Android** (parent stack).
+2. Tap each row in turn:
+   - **Accès à l'utilisation** → Android settings page → enable for KidSafe+.
+   - **Administrateur de l'appareil** → confirm dialog → enable.
+   - **Service d'accessibilité** → Android settings page → KidSafe+ AppBlocker → enable.
+   - **Affichage par-dessus** → enable overlay permission.
+3. Each row's pill should flip from grey "Off" to green "On" when you come
+   back. (We refresh on `AppState` change.)
+4. Now sign out and sign back in as the child. Verify on Firestore that
+   `parents/{uid}/devices/{token}` exists (FCM token registered).
+
+### Real screen-time enforcement
+1. Set a low daily limit (e.g. `1 min`) via **Parent → Temps d'écran**.
+2. Use the child's phone for >1 min total foreground time.
+3. Expected: device locks (Android lock screen). Unlocking and reopening the
+   app within the same day will not re-trigger the lock (one-shot per cap).
+4. As parent, tap **+15 min bonus** on the child detail screen.
+5. The child's "time remaining" banner updates on next refresh; lock is no
+   longer triggered until the new cap is reached.
+
+### Real app blocking
+1. AI assistant: "Bloque YouTube." → a `block_app` rule with `packageName:
+   com.google.android.youtube` is created and synced to the native
+   AccessibilityService blocklist.
+2. On the child phone, open YouTube. The AccessibilityService catches the
+   `WINDOW_STATE_CHANGED` event and sends the user back to the launcher.
+
+### Remote lock
+1. **Parent → Child detail → Verrouiller maintenant**. Confirm.
+2. Child phone locks instantly via `DevicePolicyManager.lockNow()`.
+
+### Safe browser
+1. Child → **Maison → 🌐 Navigateur**.
+2. Type `youporn.com` → blocked overlay (deny-list catch).
+3. Type `google.com/search?q=cute+puppies` → URL bar shows
+   `&safe=active` injected.
+4. Type a less-known URL → backend `/ai/classify` is hit; if flagged, a
+   `web_blocked` alert is posted and the page is replaced with the blocked
+   overlay.
+5. Verify Firestore `web_history/` contains a row with `allowed: false` for
+   each blocked attempt.
+
+### Voice on AI assistant
+1. **Parent → IA**, **press and hold** the 🎤 button.
+2. Speak in French / Darija / English. Partial transcript appears in the
+   input box live.
+3. Release. Final transcript replaces the partial. Tap send → rules are
+   produced from the transcript.
+
+### Recitation: type-instead fallback
+1. Child → Récitation. Switch to the **Tape** tab.
+2. Type the expected text exactly. Submit. Score 100, gate unlocks.
+3. Useful when the device doesn't have on-device speech recognition (most
+   modern Android devices ship with the Google Speech Service though).
+
+### Daily report
+1. Verify backend `GET /report/daily?childId=...&date=YYYY-MM-DD` returns:
+   ```json
+   { "childId": "...", "date": "...", "totalScreenMin": 0,
+     "topApps": [], "alerts": 0, "recitations": {"passed":0,"failed":0},
+     "blockedSites": 0 }
+   ```
+   **Auth required:** `Authorization: Bearer <Firebase-ID-token>` of the
+   parent who owns the child.
+2. `POST /report/send` with `{ childId, date? }` sends a push notification to
+   every parent device token in `parents/{uid}/devices`.
+3. Schedule it externally — e.g. on Render add a [Cron Job](https://render.com/docs/cronjobs)
+   that hits the endpoint once per night with a service-account ID token.
+
+---
+
+## 14. Known limitations
 
 | Feature | Status | Why |
 |---|---|---|
-| Real screen-time enforcement | ⏳ Milestone 2 | Needs `PACKAGE_USAGE_STATS` + Accessibility Service native module. |
-| Real app blocking | ⏳ Milestone 2 | Same as above. |
-| Remote device lock | ⏳ Milestone 2 | Needs `DevicePolicyManager` device-admin native module + first-run permission flow. |
-| In-app safe browser | ⏳ Milestone 2 | Needs `react-native-webview` + URL classifier. |
-| SMS cyberbullying scan | ⏳ Milestone 2 | Needs `READ_SMS` + `NotificationListenerService`. Restricted by Play Store. |
-| Voice input on assistant | ⏳ Milestone 2 | Currently text-only. Whisper round-trip same as recitation gate. |
+| SMS cyberbullying scan | 🟡 Backend classifier ready | Native SMS receiver + READ_SMS permission flow not yet wired. Play Store restricts this category outside Family/MDM apps. |
 | Map view for location | ⏳ Needs Google Maps key | List view works; map view will appear when you provide a Maps SDK key. |
-| Geofencing | ⏳ Milestone 2 | Needs background location service + FCM. |
-| FCM push notifications | 🟡 Backend route ready | Mobile doesn't yet register a token. Wires up in M2. |
-| Bedtime / homework auto-lock | 🟡 UI + rule, no enforcement | Needs M2 native modules. |
+| Whisper transcription | 🟡 Falls back to on-device | LLMAPI.ai aggregator doesn't proxy `/audio/transcriptions`. Set a real OpenAI key in `OPENAI_API_KEY` to re-enable. |
+| Geofencing alerts | ✅ M2 | Background location task writes `enter`/`exit` alerts when child crosses configured zones. |
+| FCM push notifications | ✅ M2 | Mobile registers token at sign-in; backend `/notifications/push` and `/report/send` dispatch. |
+| Bedtime / homework auto-lock | 🟡 UI + rule | Banners show on child home; native auto-lock window not yet enforced (only `screen_time_limit` triggers `lockNow`). |
 
 ---
 

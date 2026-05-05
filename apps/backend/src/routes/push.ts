@@ -1,7 +1,8 @@
-import { Router, type Request, type Response } from 'express';
+import { Router, type Response } from 'express';
 import { z } from 'zod';
 
 import { firebaseMessaging } from '../firebase';
+import { requireParent, type AuthedRequest } from '../middleware/auth';
 
 const Body = z.object({
   tokens: z.array(z.string()).min(1).max(500),
@@ -11,8 +12,9 @@ const Body = z.object({
 });
 
 const router = Router();
+router.use(requireParent);
 
-router.post('/push', async (req: Request, res: Response) => {
+router.post('/push', async (req: AuthedRequest, res: Response) => {
   const parsed = Body.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'invalid_body' });

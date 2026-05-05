@@ -1,11 +1,16 @@
 import type { Rule } from '@/types';
 
 interface BedtimePayload {
-  startHHMM?: string; // e.g. "21:00"
-  endHHMM?: string; // e.g. "07:00"
+  // Existing rule shape uses `start`/`end`; tolerate `startHHMM`/`endHHMM` too.
+  start?: string;
+  end?: string;
+  startHHMM?: string;
+  endHHMM?: string;
 }
 
 interface HomeworkPayload {
+  start?: string;
+  end?: string;
   startHHMM?: string;
   endHHMM?: string;
   allowList?: string[];
@@ -13,6 +18,7 @@ interface HomeworkPayload {
 
 interface ScreenTimePayload {
   dailyLimitMin?: number;
+  dailyLimitMinutes?: number;
 }
 
 interface RewardPayload {
@@ -72,14 +78,20 @@ export const computeScheduleStatus = (
   for (const r of rules) {
     if (!r.active) continue;
     switch (r.kind) {
-      case 'bedtime': {
+      case 'bedtime':
+      case 'bedtime_mode': {
         const p = r.payload as BedtimePayload;
-        if (isInWindow(p.startHHMM, p.endHHMM, now)) bedtimeActive = true;
+        const s = p.start ?? p.startHHMM;
+        const e = p.end ?? p.endHHMM;
+        if (isInWindow(s, e, now)) bedtimeActive = true;
         break;
       }
-      case 'homework': {
+      case 'homework':
+      case 'homework_mode': {
         const p = r.payload as HomeworkPayload;
-        if (isInWindow(p.startHHMM, p.endHHMM, now)) {
+        const s = p.start ?? p.startHHMM;
+        const e = p.end ?? p.endHHMM;
+        if (isInWindow(s, e, now)) {
           homeworkActive = true;
           homeworkAllowList = p.allowList ?? [];
         }
@@ -87,9 +99,8 @@ export const computeScheduleStatus = (
       }
       case 'screen_time_limit': {
         const p = r.payload as ScreenTimePayload;
-        if (typeof p.dailyLimitMin === 'number') {
-          dailyLimitMin = p.dailyLimitMin;
-        }
+        const v = p.dailyLimitMin ?? p.dailyLimitMinutes;
+        if (typeof v === 'number') dailyLimitMin = v;
         break;
       }
       case 'reward': {

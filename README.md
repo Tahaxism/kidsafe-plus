@@ -5,9 +5,12 @@ for Android, with an AI assistant, voice-recitation unlock gate, cyberbullying
 detection, screen-time limits, app blocking, web filtering, location tracking
 and SOS.
 
-> **Status:** Milestone 1 (skeleton + auth + AI + recitation + dashboards) —
-> see [TESTING_GUIDE.md](./docs/TESTING_GUIDE.md) for what works today and
-> what's stubbed pending native modules / extra credentials.
+> **Status:** Milestones 1 + 2 + 3 merged. Native Android enforcement
+> (UsageStats, DeviceAdmin lock, AccessibilityService app-blocker), in-app
+> safe browser, voice input on the AI assistant, background location, FCM
+> push, daily reports, real installed-apps list, and screen-time auto-lock
+> are all wired in. See [TESTING_GUIDE.md](./docs/TESTING_GUIDE.md) for the
+> per-feature walkthrough.
 
 This repo replaces the legacy 2019 Java prototype at
 [xMansour/KidSafe](https://github.com/xMansour/KidSafe). The old codebase
@@ -130,26 +133,62 @@ npm run start
 - [x] **Settings + language picker + backend status** indicator.
 - [x] **Firestore security rules** scoped to `parentUid` ownership.
 
-### Milestone 2 (next, requires native Android modules)
+### Added in milestone 2
 
-- [ ] Native module: Android **PACKAGE_USAGE_STATS** to surface per-app usage
-      and enforce the daily limit.
-- [ ] Native module: **Accessibility Service** overlay to block apps in real
-      time.
-- [ ] Native module: **DevicePolicyManager** for the remote-lock action.
-- [ ] Native module: **SMS / NotificationListenerService** to feed messages
-      into the cyberbullying classifier.
-- [ ] In-app browser (`react-native-webview`) with domain blocklist + LLM
-      fallback for unknown domains.
-- [ ] Background location service writing to `locations/`.
-- [ ] FCM push wired up end-to-end (token registration + background handler).
-- [ ] Geofence enter/exit alerts.
-- [ ] Voice input on the parent AI assistant (currently text-only).
-- [ ] Reward system + nightly daily-report job.
+- [x] Local Expo Module **`modules/kidsafe-native/`** (Kotlin):
+      - `getTodayUsage()` via `UsageStatsManager` — per-app foreground time.
+      - `getInstalledApps()` via `PackageManager` (launcher query).
+      - `requestDeviceAdmin()` / `lockNow()` via `DevicePolicyManager`.
+      - `setBlockedPackages()` synced to a custom `AccessibilityService`
+        that pushes the user back to the launcher when a blocked package
+        comes to foreground.
+      - Overlay & boot helpers.
+- [x] **Native Permissions** parent screen — one-tap setup with live status
+      pills for Usage Access / Device Admin / Accessibility / Overlay.
+- [x] **In-app safe browser** (`react-native-webview`) with deny-list
+      pre-check, LLM classifier fallback, safe-search injection, and
+      `web_history` writes.
+- [x] **Voice input on the AI assistant** — press-and-hold mic uses
+      on-device Android `SpeechRecognizer` (free, offline-capable). Whisper
+      stays as a fallback for when a real OpenAI key is available.
+- [x] **Background location** + geofence enter/exit alerts via Expo
+      `TaskManager`.
+- [x] **FCM push end-to-end** — mobile registers token at
+      `parents/{uid}/devices/{token}`; backend dispatches via
+      `/notifications/push` and `/report/send`.
+- [x] **Bedtime / homework / reward / remote-lock** rule kinds with banners
+      on the child home and parent quick actions ("Lock now", "+15 min").
+- [x] **Daily report** endpoint — `GET /report/daily?childId=...&date=...`
+      and `POST /report/send`.
 
-> Why split? Android-platform integrations need a custom dev-client build and
-> careful permission UX, and they're easier to iterate on once you can confirm
-> the JS layer works on your device.
+### Added in milestone 3
+
+- [x] Child device posts daily per-app usage to Firestore `usage/`
+      (powers the `/report/daily` aggregate).
+- [x] Child app reads used minutes from native every minute and triggers
+      `Native.lockNow()` once when the daily limit + reward bonus is
+      exceeded.
+- [x] App-blocking screen surfaces the **real** installed-apps list from
+      the child device (falls back to a curated list when running outside
+      the device).
+- [x] Backend `/report/*` and `/notifications/*` are now authenticated:
+      mobile attaches a Firebase ID token in `Authorization`, backend
+      verifies it with the Admin SDK and re-checks ownership of the
+      `childId`. Rate limiter applied.
+- [x] Firestore rules updated for `parents/{uid}/devices`, `web_history`,
+      and `usage` subcollections.
+
+### Backlog
+
+- [ ] Native SMS receiver + classifier wiring (cyberbullying alerts on
+      incoming SMS). Needs `READ_SMS` / `RECEIVE_SMS` and a dedicated
+      `BroadcastReceiver`. Restricted by Play Store outside Family/MDM.
+- [ ] Map view for location (currently a list) — needs a Google Maps SDK
+      key.
+- [ ] Native auto-lock window for bedtime/homework (currently the banners
+      show but enforcement is via screen-time cap only).
+- [ ] Switching the child PIN auth flow to Firebase Custom Tokens so
+      Firestore writes from the child device get scoped properly.
 
 ---
 

@@ -1,9 +1,15 @@
-import { Router, type Request, type Response } from 'express';
+import { Router, type Response } from 'express';
 
 import { hasFirebaseAdmin, env } from '../env';
 import { firebaseAdmin } from '../firebase';
+import {
+  requireParent,
+  assertOwnsChild,
+  type AuthedRequest,
+} from '../middleware/auth';
 
 const router = Router();
+router.use(requireParent);
 
 interface DailyReport {
   childId: string;
@@ -19,13 +25,18 @@ const todayUTC = (): string => new Date().toISOString().slice(0, 10);
 
 // GET /report/daily?childId=xxx&date=YYYY-MM-DD
 // Aggregates Firestore documents and returns a JSON daily summary.
-router.get('/daily', async (req: Request, res: Response) => {
+// Requires Authorization: Bearer <Firebase ID token> for the parent who owns
+// the child.
+router.get('/daily', async (req: AuthedRequest, res: Response) => {
   if (!hasFirebaseAdmin()) {
     return res.status(503).json({ error: 'firebase_admin_not_configured' });
   }
   const childId = String(req.query.childId ?? '');
   const date = String(req.query.date ?? todayUTC());
   if (!childId) return res.status(400).json({ error: 'missing_childId' });
+  if (!req.parentUid || !(await assertOwnsChild(req.parentUid, childId))) {
+    return res.status(403).json({ error: 'forbidden' });
+  }
 
   try {
     const db = firebaseAdmin().firestore();
@@ -100,17 +111,22 @@ router.get('/daily', async (req: Request, res: Response) => {
   }
 });
 
-// POST /report/send  { parentUid, childId, date? }
-// Looks up parent's FCM tokens and sends a push with the daily summary.
-router.post('/send', async (req: Request, res: Response) => {
+// POST /report/send  { childId, date? }
+// Looks up the authenticated parent's FCM tokens and sends a push with the
+// daily summary. parentUid is taken from the verified Firebase ID token, not
+// from the request body.
+router.post('/send', async (req: AuthedRequest, res: Response) => {
   if (!hasFirebaseAdmin()) {
     return res.status(503).json({ error: 'firebase_admin_not_configured' });
   }
-  const parentUid = String(req.body?.parentUid ?? '');
+  const parentUid = req.parentUid;
   const childId = String(req.body?.childId ?? '');
   const date = String(req.body?.date ?? todayUTC());
   if (!parentUid || !childId) {
     return res.status(400).json({ error: 'missing_params' });
+  }
+  if (!(await assertOwnsChild(parentUid, childId))) {
+    return res.status(403).json({ error: 'forbidden' });
   }
 
   try {
@@ -138,10 +154,11 @@ router.post('/send', async (req: Request, res: Response) => {
     const total = usage?.totalMinutes ?? 0;
     const alerts = alertsSnap.size;
 
-    // Look up parent device tokens
+    // Look up parent device tokens (subcollection: parents/{uid}/devices)
     const tokSnap = await db
+      .collection('parents')
+      .doc(parentUid)
       .collection('devices')
-      .where('parentUid', '==', parentUid)
       .get();
     const tokens = tokSnap.docs
       .map((d) => (d.data() as { token?: string }).token)
