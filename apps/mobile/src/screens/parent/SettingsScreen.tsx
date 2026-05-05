@@ -86,6 +86,15 @@ export const SettingsScreen: React.FC = () => {
         </Text>
       </View>
 
+      <Text style={styles.section}>{t('parent.native.title')}</Text>
+      <View style={styles.group}>
+        <Row
+          label={t('parent.native.title') as string}
+          value={t('parent.native.settingsRowValue') as string}
+          onPress={() => nav.navigate('NativePermissions')}
+        />
+      </View>
+
       <Text style={styles.section}>{t('parent.settings.backendStatus')}</Text>
       <View style={styles.group}>
         <Row

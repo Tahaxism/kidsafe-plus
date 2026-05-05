@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import {
   useNavigation,
@@ -12,8 +12,9 @@ import type { ParentStackParamList } from '@/navigation/types';
 import { colors, radii, spacing, typography } from '@/theme';
 import { Screen } from '@/components/Screen';
 import { Avatar } from '@/components/Avatar';
+import { Button } from '@/components/Button';
 import { useChildrenStore } from '@/stores/children';
-import { subscribeChildRules } from '@/services/rules';
+import { addRule, setRuleActive, subscribeChildRules } from '@/services/rules';
 import type { Rule } from '@/types';
 
 type Nav = NativeStackNavigationProp<ParentStackParamList, 'ChildDetail'>;
@@ -97,6 +98,61 @@ export const ChildDetailScreen: React.FC = () => {
           onPress={() => nav.navigate('Recitation', { childId })}
         />
       </View>
+
+      <View style={{ height: spacing.xl }} />
+
+      <Button
+        title={t('parent.detail.lockNow') as string}
+        variant="danger"
+        onPress={() =>
+          Alert.alert(
+            t('parent.detail.lockNow') as string,
+            t('parent.detail.lockNowConfirm') as string,
+            [
+              { text: t('common.cancel') as string, style: 'cancel' },
+              {
+                text: t('common.confirm') as string,
+                style: 'destructive',
+                onPress: async () => {
+                  // Deactivate any pending remote_lock so a new one fires.
+                  for (const r of rules) {
+                    if (r.kind === 'remote_lock' && r.active) {
+                      await setRuleActive(r.id, false);
+                    }
+                  }
+                  await addRule(childId, {
+                    kind: 'remote_lock',
+                    payload: { childId, ts: Date.now() },
+                    createdBy: 'parent',
+                    reasonText: t('parent.detail.lockNow') as string,
+                  });
+                },
+              },
+            ],
+          )
+        }
+        size="lg"
+      />
+
+      <View style={{ height: spacing.md }} />
+
+      <Button
+        title={t('parent.detail.bonus15') as string}
+        variant="primary"
+        onPress={async () => {
+          await addRule(childId, {
+            kind: 'reward',
+            payload: {
+              childId,
+              bonusMinutes: 15,
+              expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+            },
+            createdBy: 'parent',
+            reasonText: '+15 min',
+          });
+        }}
+        size="md"
+      />
     </Screen>
   );
 };

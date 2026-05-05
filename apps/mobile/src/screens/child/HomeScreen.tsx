@@ -12,9 +12,13 @@ import { Button } from '@/components/Button';
 import { useAuthStore } from '@/stores/auth';
 import { subscribeChildRules } from '@/services/rules';
 import { computeScheduleStatus, formatRemaining } from '@/services/scheduling';
+import { Native } from '@/services/native';
 import type { Rule } from '@/types';
 
 type Nav = NativeStackNavigationProp<ChildStackParamList, 'Home'>;
+
+// Module-scope set so that re-mounts don't replay locks.
+const firedLocks = new Set<string>();
 
 export const ChildHomeScreen: React.FC = () => {
   const { t } = useTranslation();
@@ -34,6 +38,32 @@ export const ChildHomeScreen: React.FC = () => {
     const id = setInterval(() => setTick((x) => x + 1), 60_000);
     return () => clearInterval(id);
   }, []);
+
+  // Sync the active blocklist to the native AccessibilityService whenever the
+  // rule set changes. The service uses this to redirect the user back to the
+  // launcher when they open a blocked app. Also trigger a Device-Admin lock
+  // immediately when a `remote_lock` rule becomes active.
+  useEffect(() => {
+    const blockedPkgs: string[] = [];
+    let lockNow = false;
+    for (const r of rules) {
+      if (!r.active) continue;
+      if (r.kind === 'block_app') {
+        const p = (r.payload as { packageName?: string }).packageName;
+        if (p) blockedPkgs.push(p);
+      } else if (r.kind === 'remote_lock') {
+        // Only lock once per remote-lock rule activation: we treat ruleId as
+        // the dedup key by stuffing it into a one-shot ref outside React's
+        // state machine.
+        if (!firedLocks.has(r.id)) {
+          firedLocks.add(r.id);
+          lockNow = true;
+        }
+      }
+    }
+    void Native.setBlockedPackages(blockedPkgs);
+    if (lockNow) void Native.lockNow();
+  }, [rules]);
 
   const status = useMemo(
     () => computeScheduleStatus(rules, new Date()),

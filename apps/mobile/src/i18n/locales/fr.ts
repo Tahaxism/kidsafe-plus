@@ -148,6 +148,12 @@ export default {
       addGeofence: 'Ajouter une zone',
       mapStub: 'La carte sera disponible dès la configuration de la clé Google Maps.',
     },
+    detail: {
+      lockNow: "Verrouiller l'appareil maintenant",
+      lockNowConfirm:
+        "Cela va verrouiller l'écran de l'enfant immédiatement. Continuer ?",
+      bonus15: '+15 min de bonus',
+    },
     recitation: {
       title: 'Récitations',
       assigned: 'Texte attribué',
@@ -156,6 +162,20 @@ export default {
       passed: 'Réussie',
       failed: 'Échec',
       threshold: 'Seuil de réussite',
+    },
+    native: {
+      title: 'Permissions Android',
+      intro:
+        "Pour activer le contrôle réel des applications, accorde ces permissions une fois sur l'appareil de l'enfant.",
+      usageAccess: "Accès à l'utilisation",
+      usageAccessDesc: "Permet de mesurer le temps d'écran et de lister les apps utilisées.",
+      deviceAdmin: 'Administrateur de l\'appareil',
+      deviceAdminDesc: 'Permet le verrouillage à distance.',
+      accessibility: 'Service d\'accessibilité',
+      accessibilityDesc: "Permet d'intercepter l'ouverture des apps bloquées.",
+      overlay: 'Affichage par-dessus',
+      overlayDesc: "Affiche un écran de blocage au-dessus de l'app interdite.",
+      settingsRowValue: 'Configurer →',
     },
     settings: {
       title: 'Réglages',

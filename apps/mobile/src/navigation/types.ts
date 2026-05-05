@@ -26,6 +26,7 @@ export type ParentStackParamList = {
   Recitation: { childId: string };
   AddChild: undefined;
   Language: undefined;
+  NativePermissions: undefined;
 };
 
 export type ChildStackParamList = {

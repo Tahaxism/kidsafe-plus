@@ -4,7 +4,9 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "kidsafe-native": ["modules/kidsafe-native/src/index.ts"],
+      "kidsafe-native/*": ["modules/kidsafe-native/src/*"]
     },
     "jsx": "react-native"
   },

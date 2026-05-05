@@ -148,6 +148,11 @@ export default {
       addGeofence: 'Add zone',
       mapStub: 'Map will appear once you configure the Google Maps key.',
     },
+    detail: {
+      lockNow: 'Lock device now',
+      lockNowConfirm: "This locks the child's screen immediately. Continue?",
+      bonus15: '+15 min bonus',
+    },
     recitation: {
       title: 'Recitations',
       assigned: 'Assigned text',
@@ -156,6 +161,20 @@ export default {
       passed: 'Passed',
       failed: 'Failed',
       threshold: 'Pass threshold',
+    },
+    native: {
+      title: 'Android permissions',
+      intro:
+        "Grant these one-time permissions on the child's device to enable real app control.",
+      usageAccess: 'Usage access',
+      usageAccessDesc: 'Measures screen time and lists used apps.',
+      deviceAdmin: 'Device Admin',
+      deviceAdminDesc: 'Enables remote lock.',
+      accessibility: 'Accessibility service',
+      accessibilityDesc: 'Detects when blocked apps open.',
+      overlay: 'Display over apps',
+      overlayDesc: 'Shows a lock screen on top of forbidden apps.',
+      settingsRowValue: 'Configure →',
     },
     settings: {
       title: 'Settings',

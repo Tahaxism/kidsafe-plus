@@ -150,6 +150,11 @@ export default {
       addGeofence: 'زيد منطقة',
       mapStub: 'الخريطة تظهر منين تكنفيكي ساروت Google Maps.',
     },
+    detail: {
+      lockNow: 'سد الجهاز دابا',
+      lockNowConfirm: 'هاد العملية كتسد شاشة الولد دابا. كمل؟',
+      bonus15: '+15 دقيقة مكافأة',
+    },
     recitation: {
       title: 'التلاوات',
       assigned: 'النص المعطى',
@@ -158,6 +163,19 @@ export default {
       passed: 'ناجحة',
       failed: 'فشل',
       threshold: 'حد النجاح',
+    },
+    native: {
+      title: 'الصلاحيات على أندرويد',
+      intro: 'باش يخدم التحكم الحقيقي ف الأبليكاسيونات، عطي هاد الصلاحيات مرة وحدة على جهاز الولد.',
+      usageAccess: 'الوصول للاستخدام',
+      usageAccessDesc: 'كيقيس وقت الشاشة وكيعرف الأبليكاسيونات المستعملة.',
+      deviceAdmin: 'مدير الجهاز',
+      deviceAdminDesc: 'كيخلي القفل عن بعد ممكن.',
+      accessibility: 'خدمة إمكانية الوصول',
+      accessibilityDesc: 'كيكشف فاش يتحلو الأبليكاسيونات المدبلوكاو.',
+      overlay: 'العرض فوق الأبليكاسيونات',
+      overlayDesc: 'كيبين شاشة قفل فوق الأبليكاسيون الممنوع.',
+      settingsRowValue: 'تكوين →',
     },
     settings: {
       title: 'الإعدادات',
