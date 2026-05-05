@@ -76,6 +76,14 @@
         "expo-secure-store"
       ],
       [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow KidSafe+ to access the microphone so you can recite text aloud and dictate to the AI assistant.",
+          "speechRecognitionPermission": "Allow KidSafe+ to recognize speech for the recitation gate and AI assistant.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {

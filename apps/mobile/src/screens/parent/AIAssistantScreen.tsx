@@ -19,6 +19,11 @@ import { useAuthStore } from '@/stores/auth';
 import { useChildrenStore } from '@/stores/children';
 import { askAssistant } from '@/services/ai';
 import { addRule } from '@/services/rules';
+import {
+  isOnDeviceAvailable,
+  requestSpeechPermission,
+  transcribeOnDevice,
+} from '@/services/speechRecognition';
 import type { ChatMessage, RuleKind } from '@/types';
 
 const newId = (): string =>
@@ -34,6 +39,10 @@ export const AIAssistantScreen: React.FC = () => {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [recording, setRecording] = useState(false);
+  const speechCtrl = useRef<{ stop: () => void; abort: () => void } | null>(
+    null,
+  );
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
   useEffect(() => {
@@ -124,6 +133,41 @@ export const AIAssistantScreen: React.FC = () => {
     t('parent.ai.ex3'),
   ] as string[];
 
+  const startVoice = async (): Promise<void> => {
+    if (busy || recording) return;
+    if (!(await isOnDeviceAvailable())) {
+      const e: ChatMessage = {
+        id: newId(),
+        role: 'assistant',
+        text: t('child.reciteFailedErr') as string,
+        createdAt: Date.now(),
+      };
+      setMessages((m) => [...m, e]);
+      return;
+    }
+    if (!(await requestSpeechPermission())) return;
+    const lang = (i18n.language as 'fr' | 'ar' | 'en') ?? 'fr';
+    setRecording(true);
+    setText('');
+    const { promise, controller } = transcribeOnDevice(lang, (partial) => {
+      setText(partial);
+    });
+    speechCtrl.current = controller;
+    try {
+      const final = await promise;
+      setText(final);
+    } catch {
+      // user cancelled or no-speech
+    } finally {
+      setRecording(false);
+      speechCtrl.current = null;
+    }
+  };
+
+  const stopVoice = (): void => {
+    speechCtrl.current?.stop();
+  };
+
   return (
     <Screen padded={false}>
       <View style={styles.header}>
@@ -190,8 +234,22 @@ export const AIAssistantScreen: React.FC = () => {
             placeholder={t('parent.ai.placeholder') as string}
             placeholderTextColor={colors.textDim}
             multiline
-            editable={!busy}
+            editable={!busy && !recording}
           />
+          <Pressable
+            onPressIn={startVoice}
+            onPressOut={stopVoice}
+            disabled={busy}
+            style={({ pressed }) => [
+              styles.mic,
+              {
+                backgroundColor: recording ? colors.danger : colors.surfaceAlt,
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}
+          >
+            <Text style={styles.micText}>🎤</Text>
+          </Pressable>
           <Pressable
             onPress={send}
             disabled={busy || !text.trim()}
@@ -284,4 +342,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendText: { color: colors.textOnPrimary, fontSize: 20, fontWeight: '700' },
+  mic: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  micText: { fontSize: 20 },
 });

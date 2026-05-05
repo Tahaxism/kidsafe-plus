@@ -30,10 +30,14 @@ export type RuleKind =
   | 'unblock_app'
   | 'screen_time_limit'
   | 'require_recitation'
+  | 'web_blocklist'
   | 'web_blocklist_add'
   | 'web_blocklist_remove'
+  | 'bedtime'
   | 'bedtime_mode'
+  | 'homework'
   | 'homework_mode'
+  | 'reward'
   | 'remote_lock';
 
 export interface Rule {
@@ -58,6 +62,7 @@ export type AlertKind =
   | 'recite_ok'
   | 'sos'
   | 'app_blocked'
+  | 'web_blocked'
   | 'risky_url';
 
 export interface SafetyAlert {

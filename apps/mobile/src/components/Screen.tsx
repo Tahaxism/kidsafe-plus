@@ -17,7 +17,15 @@ export const Screen: React.FC<Props> = ({
   style,
 }) => {
   const inner = (
-    <View style={[padded && styles.padded, style]}>{children}</View>
+    <View
+      style={[
+        styles.flex,
+        padded && styles.padded,
+        style,
+      ]}
+    >
+      {children}
+    </View>
   );
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -38,6 +46,7 @@ export const Screen: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
+  flex: { flex: 1 },
   padded: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
-  scroll: { paddingBottom: spacing.xxxl },
+  scroll: { paddingBottom: spacing.xxxl, flexGrow: 1 },
 });

@@ -33,6 +33,7 @@ export type ChildStackParamList = {
   RecitationGate: { ruleId: string };
   Blocked: { appName?: string; reason?: string };
   SOS: undefined;
+  SafeBrowser: { url?: string };
 };
 
 export type RootStackParamList = {

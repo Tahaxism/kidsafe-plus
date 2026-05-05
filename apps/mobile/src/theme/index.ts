@@ -24,9 +24,13 @@ export const colors = {
 
   // States
   success: '#22C55E',
+  successSoft: '#064E3B',
   warning: '#F59E0B',
+  warningSoft: '#78350F',
   danger: '#EF4444',
+  dangerSoft: '#7F1D1D',
   info: '#3B82F6',
+  infoSoft: '#1E3A8A',
 
   // Light tokens (for child-mode if we ever switch)
   white: '#FFFFFF',

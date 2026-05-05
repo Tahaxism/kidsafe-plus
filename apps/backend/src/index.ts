@@ -5,12 +5,13 @@ import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 
-import { env, hasOpenAi, hasFirebaseAdmin } from './env';
+import { env, hasOpenAi, hasNativeOpenAi, hasFirebaseAdmin } from './env';
 import assistantRouter from './routes/assistant';
 import classifyRouter from './routes/classify';
 import scoreRouter from './routes/score';
 import transcribeRouter from './routes/transcribe';
 import pushRouter from './routes/push';
+import reportRouter from './routes/report';
 
 const app = express();
 
@@ -42,6 +43,11 @@ app.get('/health', (_req: Request, res: Response) => {
     ok: true,
     env: env.nodeEnv,
     openai: hasOpenAi(),
+    nativeOpenai: hasNativeOpenAi(),
+    openaiBaseUrl: env.openaiBaseUrl || 'https://api.openai.com (default)',
+    chatModel: env.chatModel,
+    smallModel: env.smallModel,
+    transcribeModel: env.transcribeModel,
     firebaseAdmin: hasFirebaseAdmin(),
     time: new Date().toISOString(),
   });
@@ -52,6 +58,7 @@ app.use('/ai', classifyRouter);
 app.use('/ai', scoreRouter);
 app.use('/ai', transcribeRouter);
 app.use('/notifications', pushRouter);
+app.use('/report', reportRouter);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: 'not_found' });
