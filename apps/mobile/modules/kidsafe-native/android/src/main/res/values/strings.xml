@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="kidsafe_accessibility_description">KidSafe+ uses the Accessibility Service to detect when a blocked app is opened and overlay a friendly lock screen on top of it. No keystrokes are read.</string>
+</resources>
