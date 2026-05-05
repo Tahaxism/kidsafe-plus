@@ -174,6 +174,8 @@ export default {
       accessibilityDesc: 'Detects when blocked apps open.',
       overlay: 'Display over apps',
       overlayDesc: 'Shows a lock screen on top of forbidden apps.',
+      sms: 'Read incoming SMS',
+      smsDesc: 'Scans received messages for bullying / harmful content.',
       settingsRowValue: 'Configure →',
     },
     settings: {
@@ -222,6 +224,26 @@ export default {
     browserTile: 'Browser',
     browserTileDesc: 'Safe internet',
     monitored: 'This device is supervised by your parents for your safety.',
+    privacy: {
+      title: 'Supervision notice',
+      intro:
+        'This device is set up as a child phone in KidSafe+. Before you continue, you should know what the app monitors.',
+      whatTitle: 'What is monitored:',
+      what1: '• Time spent in each app.',
+      what2:
+        '• Incoming SMS (scanned automatically for harmful content).',
+      what3:
+        '• Your GPS location (shared with your parents in real time).',
+      what4:
+        '• Web pages visited through the built-in browser.',
+      whyTitle: 'Why:',
+      why:
+        'Your parents use this information to keep you safe online, not to spy on you. The full text of your SMS is never read directly — only the alerts are.',
+      rightsTitle: 'Your rights:',
+      rights:
+        "If you disagree, talk to your parents. You have the right to understand this monitoring and to ask that it be reduced.",
+      ack: 'I understand',
+    },
   },
   errors: {
     generic: 'Something went wrong.',

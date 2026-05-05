@@ -13,12 +13,14 @@ import { useTranslation } from 'react-i18next';
 import { colors, radii, spacing, typography } from '@/theme';
 import { Screen } from '@/components/Screen';
 import { Native } from '@/services/native';
+import { requestSmsPermissions } from '@/services/smsScanner';
 
 interface PermissionState {
   usageAccess: boolean;
   deviceAdmin: boolean;
   accessibility: boolean;
   overlay: boolean;
+  sms: boolean;
 }
 
 export const NativePermissionsScreen: React.FC = () => {
@@ -28,19 +30,27 @@ export const NativePermissionsScreen: React.FC = () => {
     deviceAdmin: false,
     accessibility: false,
     overlay: false,
+    sms: false,
   });
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async (): Promise<void> => {
     setBusy(true);
     try {
-      const [u, d, a, o] = await Promise.all([
+      const [u, d, a, o, s] = await Promise.all([
         Native.hasUsageAccess(),
         Native.isDeviceAdminActive(),
         Native.isAccessibilityEnabled(),
         Native.hasOverlayPermission(),
+        Native.hasSmsPermission(),
       ]);
-      setPerms({ usageAccess: u, deviceAdmin: d, accessibility: a, overlay: o });
+      setPerms({
+        usageAccess: u,
+        deviceAdmin: d,
+        accessibility: a,
+        overlay: o,
+        sms: s,
+      });
     } finally {
       setBusy(false);
     }
@@ -129,6 +139,15 @@ export const NativePermissionsScreen: React.FC = () => {
             desc={t('parent.native.overlayDesc') as string}
             enabled={perms.overlay}
             onPress={() => Native.openOverlaySettings()}
+          />
+          <Row
+            title={t('parent.native.sms') as string}
+            desc={t('parent.native.smsDesc') as string}
+            enabled={perms.sms}
+            onPress={async () => {
+              await requestSmsPermissions();
+              await refresh();
+            }}
           />
         </View>
       </ScrollView>

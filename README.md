@@ -178,17 +178,36 @@ npm run start
 - [x] Firestore rules updated for `parents/{uid}/devices`, `web_history`,
       and `usage` subcollections.
 
+### M4 (in this PR)
+
+- [x] Native `BroadcastReceiver` for `SMS_RECEIVED` (registered at runtime
+      from the Kotlin module — manifest receivers are blocked on Android 8+
+      for SMS).
+- [x] `services/smsScanner.ts` — subscribes to native SMS events on the
+      child device, forwards each message to `/ai/classify`, posts a
+      `bullying` alert to Firestore on `flagged: true`.
+- [x] SMS permission row added to `NativePermissionsScreen`.
+- [x] Bedtime / homework auto-lock — `ChildHomeScreen` triggers
+      `Native.lockNow()` once per day per window when the schedule status
+      flips to active. Combines with the existing block_app rules and the
+      daily-limit lock.
+- [x] Privacy / monitoring notice modal on first child sign-in
+      (`SecureStore`-gated, per `childId`). Required by most jurisdictions
+      before recording, monitoring SMS, or tracking location.
+- [x] Devin Review fixes from PR #2 — `usage` rule now uses
+      `resource.data.childId` for `update`; `topApps` is computed from the
+      aggregated `perAppMinutes` map instead of raw entries.
+
 ### Backlog
 
-- [ ] Native SMS receiver + classifier wiring (cyberbullying alerts on
-      incoming SMS). Needs `READ_SMS` / `RECEIVE_SMS` and a dedicated
-      `BroadcastReceiver`. Restricted by Play Store outside Family/MDM.
 - [ ] Map view for location (currently a list) — needs a Google Maps SDK
       key.
-- [ ] Native auto-lock window for bedtime/homework (currently the banners
-      show but enforcement is via screen-time cap only).
 - [ ] Switching the child PIN auth flow to Firebase Custom Tokens so
       Firestore writes from the child device get scoped properly.
+- [ ] Push the cyberbullying classifier flow off-device (right now the
+      child device has to be online with a valid Firebase ID token). Long
+      term the SMS body should be POSTed to a backend endpoint that does
+      both classification and alert insertion.
 
 ---
 

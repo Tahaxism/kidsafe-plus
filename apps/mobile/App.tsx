@@ -14,6 +14,7 @@ import {
 } from '@/services/notifications';
 import { startBackgroundTracking } from '@/services/location';
 import { startUsageReporting } from '@/services/usage';
+import { startSmsScanner } from '@/services/smsScanner';
 import { setAuthToken } from '@/services/api';
 import { getFirebaseAuth, isFirebaseConfigured } from '@/services/firebase';
 
@@ -64,14 +65,20 @@ export default function App(): React.ReactElement {
   useEffect(() => {
     if (!session) return;
     let stopUsage: (() => void) | null = null;
+    let stopSms: (() => void) | null = null;
     if (session.kind === 'parent') {
       void registerParentDevice(session.uid);
     } else if (session.kind === 'child') {
       void startBackgroundTracking(session.childId);
       stopUsage = startUsageReporting(session.childId);
+      const childId = session.childId;
+      void startSmsScanner(childId).then((stop) => {
+        stopSms = stop;
+      });
     }
     return () => {
       stopUsage?.();
+      stopSms?.();
     };
   }, [session]);
 

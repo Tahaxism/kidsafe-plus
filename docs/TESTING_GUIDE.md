@@ -308,20 +308,81 @@ Once the dev-client APK is installed, do this **once** on the **child device**:
 
 ---
 
-## 14. Known limitations
+## 14. M4 — SMS cyberbullying scan + bedtime / homework auto-lock + privacy notice
+
+### SMS cyberbullying scan
+
+1. On the **child** device, open KidSafe+ → sign in with the PIN.
+2. The first time you sign in, a **Supervision notice** modal appears.
+   Read it and tap **Compris / I understand** to continue. The notice is
+   stored per-`childId` so it won't re-appear on this device.
+3. Open *Réglages natifs* (parent UI) and tap the **Lecture des SMS** row.
+   Grant the `RECEIVE_SMS` and `READ_SMS` permissions when Android prompts.
+4. From a different phone, send the test child phone an SMS with content
+   like: "tu es nul personne ne t'aime va te pendre". (Inflammatory text on
+   purpose to trigger the classifier.)
+5. Within ~5 s, a `bullying` alert should appear in the parent **Alerts**
+   feed with the sender, a 140-char preview, and the classifier's reason.
+6. Send a benign SMS ("Coucou ça va ?") — no alert should appear.
+
+If no alert fires:
+- Check that the child app is in the foreground (the receiver is
+  registered at runtime; some OEMs aggressively kill background processes).
+- Check `adb logcat -s ReactNativeJS:V` for `[smsScanner]` errors. The
+  most common: backend `/ai/classify` returning 401 — that means the
+  Firebase ID token isn't refreshing on the child device. Sign out and
+  sign back in.
+- Make sure the OEM didn't suppress the SMS broadcast under
+  *Battery → App startup management → KidSafe+ → Allow auto-launch*.
+
+### Bedtime / homework auto-lock
+
+1. From the **parent** AI assistant, type:
+   > "Active le mode coucher de 21h00 à 06h00 pour Youssef"
+2. The AI creates a `bedtime_mode` rule with `start: "21:00"`, `end: "06:00"`.
+3. Move the **child** device's clock forward to 21:01. (Settings → Date &
+   time → turn off automatic, set time manually.) Wait ≤60 s for the
+   home screen's tick.
+4. The screen should:
+   - Show the **Bedtime** banner.
+   - Lock the device once (`Native.lockNow()`). After unlocking with the
+     PIN, the banner is still up but it doesn't relock — only the first
+     transition into the window triggers a lock per day.
+5. Move the clock back to 21:00 → bedtime banner disappears.
+
+Same flow works for `homework_mode`. The dedup key is `bedtime:{day}` /
+`homework:{day}`, so to retest within the same day, force-stop the app:
+`adb shell am force-stop ma.kidsafe.plus`.
+
+### Privacy notice
+
+The notice is keyed in `SecureStore` as `kidsafe.privacy_ack.v1.{childId}`.
+To re-show it on the same device for the same child, sign out, then run:
+
+```bash
+adb shell run-as ma.kidsafe.plus rm /data/data/ma.kidsafe.plus/files/.expo-secure-store/kidsafe.privacy_ack.v1.{childId} || true
+```
+
+(or just sign in as a different child — they get their own ack flag).
+
+---
+
+## 15. Known limitations
 
 | Feature | Status | Why |
 |---|---|---|
-| SMS cyberbullying scan | 🟡 Backend classifier ready | Native SMS receiver + READ_SMS permission flow not yet wired. Play Store restricts this category outside Family/MDM apps. |
+| SMS cyberbullying scan | ✅ M4 | Receiver registered at runtime; messages forwarded to `/ai/classify`; flagged → Firestore alert. Restricted by Play Store outside Family/MDM. |
 | Map view for location | ⏳ Needs Google Maps key | List view works; map view will appear when you provide a Maps SDK key. |
 | Whisper transcription | 🟡 Falls back to on-device | LLMAPI.ai aggregator doesn't proxy `/audio/transcriptions`. Set a real OpenAI key in `OPENAI_API_KEY` to re-enable. |
 | Geofencing alerts | ✅ M2 | Background location task writes `enter`/`exit` alerts when child crosses configured zones. |
 | FCM push notifications | ✅ M2 | Mobile registers token at sign-in; backend `/notifications/push` and `/report/send` dispatch. |
-| Bedtime / homework auto-lock | 🟡 UI + rule | Banners show on child home; native auto-lock window not yet enforced (only `screen_time_limit` triggers `lockNow`). |
+| Bedtime / homework auto-lock | ✅ M4 | One-shot `lockNow()` per window per day. Combine with `block_app` rules to also block whitelisted apps. |
+| Privacy notice on first sign-in | ✅ M4 | Modal blocks child UI on first sign-in; ack stored in SecureStore. |
+| Daily-limit lock | ✅ M3 | `usedMin ≥ cap` triggers a one-shot `lockNow`. |
 
 ---
 
-## 14. Troubleshooting
+## 16. Troubleshooting
 
 **App boots in English even though phone is in French**
 Settings → Langue → Français.

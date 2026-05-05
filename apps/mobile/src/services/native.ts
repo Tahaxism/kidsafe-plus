@@ -1,11 +1,13 @@
 import { Platform } from 'react-native';
 
 import KidsafeNative, {
+  addSmsListener as _addSmsListener,
   type UsageEntry,
   type KidsafeNativeAndroid,
+  type SmsEvent,
 } from 'kidsafe-native';
 
-export type { UsageEntry };
+export type { UsageEntry, SmsEvent };
 
 const isAndroid = Platform.OS === 'android';
 
@@ -24,6 +26,13 @@ const stub: KidsafeNativeAndroid = {
   setBlockedPackages: () => noop(undefined as void),
   openOverlaySettings: () => noop(undefined as void),
   hasOverlayPermission: () => noop(false),
+  hasSmsPermission: () => noop(false),
+  startSmsListener: () => noop(false),
+  stopSmsListener: () => noop(false),
 };
 
 export const Native: KidsafeNativeAndroid = isAndroid ? KidsafeNative : stub;
+
+export const addSmsListener: typeof _addSmsListener = isAndroid
+  ? _addSmsListener
+  : () => ({ remove: () => {} });

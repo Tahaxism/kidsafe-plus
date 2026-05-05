@@ -175,6 +175,8 @@ export default {
       accessibilityDesc: "Permet d'intercepter l'ouverture des apps bloquées.",
       overlay: 'Affichage par-dessus',
       overlayDesc: "Affiche un écran de blocage au-dessus de l'app interdite.",
+      sms: 'Lecture des SMS',
+      smsDesc: 'Analyse les messages reçus à la recherche de contenu nuisible.',
       settingsRowValue: 'Configurer →',
     },
     settings: {
@@ -225,6 +227,26 @@ export default {
     browserTileDesc: 'Internet sécurisé',
     monitored:
       'Cet appareil est supervisé par tes parents pour ta sécurité.',
+    privacy: {
+      title: 'Avis de supervision',
+      intro:
+        "Cet appareil est configuré comme téléphone d'enfant dans KidSafe+. Avant de continuer, tu dois savoir ce que l'application surveille.",
+      whatTitle: 'Ce qui est surveillé :',
+      what1: '• Le temps passé sur chaque application.',
+      what2:
+        '• Les SMS reçus (analysés automatiquement à la recherche de contenu nuisible).',
+      what3:
+        '• Ta position GPS (transmise à tes parents en temps réel).',
+      what4:
+        '• Les sites web visités via le navigateur intégré.',
+      whyTitle: 'Pourquoi :',
+      why:
+        'Tes parents utilisent ces informations pour te protéger en ligne, pas pour t\'espionner. Le contenu de tes SMS n\'est jamais lu directement — seules les alertes le sont.',
+      rightsTitle: 'Tes droits :',
+      rights:
+        "Si tu n'es pas d'accord, parle-en avec tes parents. Tu as le droit de comprendre et de demander que cette surveillance soit allégée.",
+      ack: "J'ai compris",
+    },
   },
   errors: {
     generic: 'Une erreur est survenue.',

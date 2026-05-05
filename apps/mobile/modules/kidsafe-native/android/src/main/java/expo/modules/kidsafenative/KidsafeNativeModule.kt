@@ -1,24 +1,84 @@
 package expo.modules.kidsafenative
 
+import android.Manifest
 import android.app.AppOpsManager
 import android.app.usage.UsageStatsManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Process
 import android.provider.Settings
+import android.provider.Telephony
 import expo.modules.kidsafenative.admin.KidsafeDeviceAdminReceiver
 import expo.modules.kidsafenative.services.AppBlockerAccessibilityService
 import expo.modules.kidsafenative.services.BlocklistStore
+import expo.modules.kidsafenative.sms.SmsReceiver
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import java.util.Calendar
 
 class KidsafeNativeModule : Module() {
+    private var smsReceiver: SmsReceiver? = null
+
     override fun definition() = ModuleDefinition {
         Name("KidsafeNative")
+
+        Events("onSmsReceived")
+
+        OnCreate {
+            // Wire the receiver's static listener to fire JS events.
+            SmsReceiver.listener = object : SmsReceiver.Listener {
+                override fun onSmsReceived(sender: String, body: String, ts: Long) {
+                    sendEvent(
+                        "onSmsReceived",
+                        mapOf(
+                            "sender" to sender,
+                            "body" to body,
+                            "ts" to ts
+                        )
+                    )
+                }
+            }
+        }
+
+        OnDestroy {
+            unregisterSmsReceiverInternal()
+            SmsReceiver.listener = null
+        }
+
+        AsyncFunction("hasSmsPermission") { ->
+            val ctx = context()
+            return@AsyncFunction (
+                ctx.checkSelfPermission(Manifest.permission.RECEIVE_SMS) ==
+                    PackageManager.PERMISSION_GRANTED &&
+                ctx.checkSelfPermission(Manifest.permission.READ_SMS) ==
+                    PackageManager.PERMISSION_GRANTED
+            )
+        }
+
+        AsyncFunction("startSmsListener") { ->
+            val ctx = context()
+            val granted = ctx.checkSelfPermission(Manifest.permission.RECEIVE_SMS) ==
+                PackageManager.PERMISSION_GRANTED
+            if (!granted) return@AsyncFunction false
+            if (smsReceiver != null) return@AsyncFunction true
+            val r = SmsReceiver()
+            val filter = IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION).apply {
+                priority = 999
+            }
+            ctx.registerReceiver(r, filter)
+            smsReceiver = r
+            return@AsyncFunction true
+        }
+
+        AsyncFunction("stopSmsListener") { ->
+            unregisterSmsReceiverInternal()
+            return@AsyncFunction true
+        }
 
         AsyncFunction("hasUsageAccess") { ->
             return@AsyncFunction hasUsageAccess(context())
@@ -157,6 +217,15 @@ class KidsafeNativeModule : Module() {
 
     private fun context(): Context =
         appContext.reactContext ?: throw IllegalStateException("React context unavailable")
+
+    private fun unregisterSmsReceiverInternal() {
+        val r = smsReceiver ?: return
+        try {
+            context().unregisterReceiver(r)
+        } catch (_: Exception) {
+        }
+        smsReceiver = null
+    }
 
     private fun hasUsageAccess(ctx: Context): Boolean {
         val appOps = ctx.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager

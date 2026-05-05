@@ -40,19 +40,20 @@ export const reportTodayUsage = async (childId: string): Promise<UsageDoc | null
 
   const date = todayLocal();
   const perApp: Record<string, number> = {};
+  const labelToPkg: Record<string, string> = {};
   let total = 0;
   for (const e of entries) {
     perApp[e.appLabel] = (perApp[e.appLabel] ?? 0) + e.totalTimeForegroundMin;
+    if (!labelToPkg[e.appLabel]) labelToPkg[e.appLabel] = e.packageName;
     total += e.totalTimeForegroundMin;
   }
-  const top = entries
-    .slice()
-    .sort((a, b) => b.totalTimeForegroundMin - a.totalTimeForegroundMin)
+  const top = Object.entries(perApp)
+    .sort(([, a], [, b]) => b - a)
     .slice(0, 5)
-    .map((e) => ({
-      packageName: e.packageName,
-      appLabel: e.appLabel,
-      minutes: Math.round(e.totalTimeForegroundMin),
+    .map(([label, mins]) => ({
+      packageName: labelToPkg[label] ?? label,
+      appLabel: label,
+      minutes: Math.round(mins),
     }));
 
   const docPayload: UsageDoc = {
