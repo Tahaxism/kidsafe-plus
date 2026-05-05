@@ -22,6 +22,9 @@ eas-build-cache/
 **/eas-build-cache/
 android/
 **/android/
+# but DO commit the local Expo Module's android sources
+!apps/mobile/modules/**/android/
+!apps/mobile/modules/**/android/**
 ios/
 **/ios/
 web-build/
