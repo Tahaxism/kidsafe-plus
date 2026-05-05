@@ -1,0 +1,27 @@
+# Render.com blueprint. Push the repo to GitHub, then in Render's dashboard
+# choose "New > Blueprint" and point it at this file. Render will create the
+# web service automatically. Set the environment variables in the Render UI.
+services:
+  - type: web
+    name: kidsafe-plus-backend
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: apps/backend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_BASE64
+        sync: false
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: RATE_LIMIT_PER_MIN
+        value: "60"

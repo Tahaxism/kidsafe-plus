@@ -1,0 +1,34 @@
+# Learn more https://docs.expo.io/guides/customizing-metro
+node_modules/
+.expo/
+dist/
+npm-debug.*
+*.jks
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+
+# macOS
+.DS_Store
+
+# Local
+.env
+.env.local
+
+# Native
+android/
+ios/
+ios/Podfile.lock
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+
+# EAS
+eas-build-cache/

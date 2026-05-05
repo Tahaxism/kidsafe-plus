@@ -1,0 +1,108 @@
+{
+  "expo": {
+    "name": "KidSafe+",
+    "slug": "kidsafe-plus",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "kidsafeplus",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ma.kidsafe.plus"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      },
+      "package": "ma.kidsafe.plus",
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.VIBRATE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.WAKE_LOCK",
+        "android.permission.PACKAGE_USAGE_STATS",
+        "android.permission.QUERY_ALL_PACKAGES",
+        "android.permission.READ_SMS",
+        "android.permission.RECEIVE_SMS",
+        "android.permission.READ_CONTACTS",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.BIND_DEVICE_ADMIN",
+        "android.permission.BIND_ACCESSIBILITY_SERVICE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow KidSafe+ to access the microphone for recitation recording."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow KidSafe+ to track your child's location for safety.",
+          "locationAlwaysPermission": "Allow KidSafe+ to track your child's location in the background.",
+          "locationWhenInUsePermission": "Allow KidSafe+ to track your child's current location.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#10B981",
+          "defaultChannel": "default"
+        }
+      ],
+      [
+        "expo-secure-store"
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 24,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "kotlinVersion": "1.9.25"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": ""
+      },
+      "apiBaseUrl": "https://kidsafe-backend.onrender.com",
+      "firebase": {
+        "apiKey": "",
+        "authDomain": "",
+        "projectId": "",
+        "storageBucket": "",
+        "messagingSenderId": "",
+        "appId": ""
+      }
+    },
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

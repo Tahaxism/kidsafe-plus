@@ -1,0 +1,71 @@
+rules_version = '2';
+// KidSafe+ Firestore rules.
+// - Parents are Firebase-Auth users. They can only read/write data tied to
+//   their own UID (their profile, their children, those children's rules,
+//   alerts, recitations and locations).
+// - Children sign in with a 4-digit PIN inside the app — they don't have
+//   Firebase Auth accounts. Their device acts as the parent's authenticated
+//   client only when explicitly enrolled. For now, child writes from the device
+//   go through the backend (which uses Firebase Admin) so the rules below are
+//   parent-centric.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthed() {
+      return request.auth != null;
+    }
+    function isParent(parentUid) {
+      return isAuthed() && request.auth.uid == parentUid;
+    }
+    function ownsChild(childId) {
+      return isAuthed()
+        && exists(/databases/$(database)/documents/children/$(childId))
+        && get(/databases/$(database)/documents/children/$(childId)).data.parentUid == request.auth.uid;
+    }
+
+    match /parents/{parentUid} {
+      allow read, write: if isParent(parentUid);
+    }
+
+    match /children/{childId} {
+      allow read: if ownsChild(childId)
+                  || (isAuthed() && resource.data.parentUid == request.auth.uid);
+      allow create: if isAuthed() && request.resource.data.parentUid == request.auth.uid;
+      allow update, delete: if ownsChild(childId);
+    }
+
+    match /rules/{ruleId} {
+      allow read: if isAuthed()
+                  && ownsChild(resource.data.childId);
+      allow create: if isAuthed()
+                    && ownsChild(request.resource.data.childId);
+      allow update, delete: if isAuthed()
+                            && ownsChild(resource.data.childId);
+    }
+
+    match /alerts/{alertId} {
+      allow read: if isAuthed()
+                  && ownsChild(resource.data.childId);
+      allow create: if isAuthed()
+                    && ownsChild(request.resource.data.childId);
+      allow update, delete: if isAuthed()
+                            && ownsChild(resource.data.childId);
+    }
+
+    match /recitations/{id} {
+      allow read: if isAuthed()
+                  && ownsChild(resource.data.childId);
+      allow create: if isAuthed()
+                    && ownsChild(request.resource.data.childId);
+      allow update, delete: if false;  // immutable history
+    }
+
+    match /locations/{id} {
+      allow read: if isAuthed()
+                  && ownsChild(resource.data.childId);
+      allow create: if isAuthed()
+                    && ownsChild(request.resource.data.childId);
+      allow update, delete: if false;
+    }
+  }
+}

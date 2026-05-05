@@ -1,0 +1,36 @@
+node_modules/
+**/node_modules/
+.DS_Store
+*.log
+
+# Env / secrets
+.env
+.env.local
+**/.env
+**/.env.local
+
+# Build outputs
+dist/
+build/
+**/dist/
+**/build/
+
+# Expo / EAS
+.expo/
+**/.expo/
+eas-build-cache/
+**/eas-build-cache/
+android/
+**/android/
+ios/
+**/ios/
+web-build/
+
+# Firebase / native config (user fills in locally)
+**/google-services.json
+**/GoogleService-Info.plist
+
+# IDE
+.idea/
+.vscode/
+*.iml
