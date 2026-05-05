@@ -39,6 +39,29 @@ export const ChildHomeScreen: React.FC = () => {
     return () => clearInterval(id);
   }, []);
 
+  // Used screen-time minutes today, read from native UsageStatsManager.
+  const [usedMin, setUsedMin] = useState<number>(0);
+  useEffect(() => {
+    let stopped = false;
+    const refresh = async (): Promise<void> => {
+      const has = await Native.hasUsageAccess();
+      if (!has || stopped) return;
+      const entries = await Native.getTodayUsage();
+      if (stopped) return;
+      const total = entries.reduce(
+        (acc, e) => acc + e.totalTimeForegroundMin,
+        0,
+      );
+      setUsedMin(Math.round(total));
+    };
+    void refresh();
+    const id = setInterval(refresh, 60_000);
+    return () => {
+      stopped = true;
+      clearInterval(id);
+    };
+  }, []);
+
   // Sync the active blocklist to the native AccessibilityService whenever the
   // rule set changes. The service uses this to redirect the user back to the
   // launcher when they open a blocked app. Also trigger a Device-Admin lock
@@ -72,6 +95,23 @@ export const ChildHomeScreen: React.FC = () => {
     [rules, tick],
   );
 
+  // Enforce the daily screen-time limit: lock the device once the child has
+  // burned through their allotted minutes (plus any reward bonuses). Only
+  // fires once per day per limit value to avoid relock loops.
+  const limitFiredKey =
+    status.dailyLimitMin !== null
+      ? `limit:${status.dailyLimitMin + status.bonusMinutes}:${new Date().toDateString()}`
+      : null;
+  useEffect(() => {
+    if (!limitFiredKey) return;
+    if (status.dailyLimitMin === null) return;
+    const cap = status.dailyLimitMin + status.bonusMinutes;
+    if (usedMin >= cap && !firedLocks.has(limitFiredKey)) {
+      firedLocks.add(limitFiredKey);
+      void Native.lockNow();
+    }
+  }, [usedMin, status.dailyLimitMin, status.bonusMinutes, limitFiredKey]);
+
   if (session?.kind !== 'child') return <Screen />;
 
   const activeBlocks = rules.filter(
@@ -83,7 +123,11 @@ export const ChildHomeScreen: React.FC = () => {
   );
   const remoteLock = rules.find((r) => r.kind === 'remote_lock' && r.active);
 
-  const remaining = formatRemaining(0, status.dailyLimitMin, status.bonusMinutes);
+  const remaining = formatRemaining(
+    usedMin,
+    status.dailyLimitMin,
+    status.bonusMinutes,
+  );
 
   return (
     <Screen scroll>

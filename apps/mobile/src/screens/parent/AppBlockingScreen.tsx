@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, Switch, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useRoute, type RouteProp } from '@react-navigation/native';
@@ -7,6 +7,7 @@ import type { ParentStackParamList } from '@/navigation/types';
 import { colors, radii, spacing, typography } from '@/theme';
 import { Screen } from '@/components/Screen';
 import { addRule, subscribeChildRules } from '@/services/rules';
+import { Native } from '@/services/native';
 import type { Rule } from '@/types';
 
 type Rt = RouteProp<ParentStackParamList, 'AppBlocking'>;
@@ -39,8 +40,34 @@ export const AppBlockingScreen: React.FC = () => {
   const { t } = useTranslation();
   const { childId } = useRoute<Rt>().params;
   const [rules, setRules] = useState<Rule[]>([]);
+  const [installed, setInstalled] = useState<AppEntry[] | null>(null);
 
   useEffect(() => subscribeChildRules(childId, setRules), [childId]);
+
+  // Load the real installed-apps list from the native module if running on the
+  // child's device. Falls back to the curated KNOWN_APPS list otherwise.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const apps = await Native.getInstalledApps();
+      if (cancelled || !apps.length) return;
+      const out: AppEntry[] = apps
+        .filter((a) => !a.isSystem)
+        .map((a) => ({
+          pkg: a.packageName,
+          name: a.label,
+          category: '',
+          emoji: '📱',
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      setInstalled(out);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const dataset = useMemo(() => installed ?? KNOWN_APPS, [installed]);
 
   const isBlocked = (pkg: string): boolean => {
     // last write wins on this packageName
@@ -79,7 +106,7 @@ export const AppBlockingScreen: React.FC = () => {
         </Text>
       </View>
       <FlatList
-        data={KNOWN_APPS}
+        data={dataset}
         keyExtractor={(a) => a.pkg}
         contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}
         renderItem={({ item }) => {
